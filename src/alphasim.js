@@ -244,7 +244,7 @@
     battle.events.sort((a, b) => a.t - b.t);
     return battle;
   }
-  async function readFile(file) {
+  async function readRecords(file) {
     if (file.size > 50 * 1024 * 1024) fail("单文件不能超过 50 MB。");
     const buffer = await file.arrayBuffer(),
       bytes = new Uint8Array(buffer);
@@ -261,9 +261,9 @@
       const { value, done } = await reader.read();
       if (done) break;
       size += value.length;
-      if (size > 100 * 1024 * 1024) {
+      if (size > 512 * 1024 * 1024) {
         await reader.cancel();
-        fail("解压后的日志超过 100 MB。");
+        fail("解压后的日志超过 512 MB。");
       }
       chunks.push(value);
     }
@@ -273,11 +273,27 @@
       joined.set(c, offset);
       offset += c.length;
     }
-    return parse(
-      JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(joined)),
-      file.name,
+    const raw = JSON.parse(
+      new TextDecoder("utf-8", { fatal: true }).decode(joined),
+    );
+    const result = parseRecords(raw, file.name);
+    result.rawBytes = size;
+    return result;
+  }
+  function parseRecords(raw, label = "Imported battle") {
+    const records =
+      raw?.format === "tft-replay-session/v1" ? raw.records : [raw];
+    if (!Array.isArray(records) || !records.length || records.length > 100)
+      fail("多场记录必须包含 1–100 场。");
+    return records.map((r, i) =>
+      parse(r, records.length === 1 ? label : label + " #" + (i + 1)),
     );
   }
-  root.AlphaSim = { keys, parse, readFile };
+  async function readFile(file) {
+    const records = await readRecords(file);
+    if (records.length !== 1) fail("多场文件请使用 readRecords");
+    return records[0];
+  }
+  root.AlphaSim = { keys, parse, readFile, readRecords, parseRecords };
   if (typeof module !== "undefined") module.exports = root.AlphaSim;
 })(typeof window !== "undefined" ? window : globalThis);

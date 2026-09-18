@@ -1,25 +1,32 @@
-// Only extension-owned pages may read extension storage. The public viewer stays local-file-only.
 if (
   location.protocol === "chrome-extension:" &&
-  location.hash.startsWith("#capture=")
+  (location.hash === "#history" || location.hash.startsWith("#capture="))
 ) {
   (async () => {
     try {
-      const { latest } = await chrome.storage.local.get("latest");
-      if (!latest) throw new Error("本地记录已清除，请重新模拟一次。");
-      if (latest.id !== decodeURIComponent(location.hash.slice(9)))
-        throw new Error("最新一场记录已更新，请从扩展重新打开回放。");
-      const record = await CaptureCodec.decode(latest);
-      install([
-        AlphaSim.parse(
-          record,
-          "AlphaSim · " + new Date(latest.capturedAt).toLocaleString(),
-        ),
-      ]);
+      const rpc = async (message) => {
+        const r = await chrome.runtime.sendMessage(message);
+        if (!r?.ok) throw new Error(r?.error || "扩展未响应");
+        return r.data;
+      };
+      const entries = await rpc({ type: "list" });
+      if (!entries.length)
+        throw new Error("本地记录为空，请先在 AlphaSim 模拟。");
+      const battles = [];
+      for (const [i, e] of entries.entries()) {
+        $("importStatus").textContent =
+          `正在载入本地历史 ${i + 1}/${entries.length}…`;
+        battles.push(
+          AlphaSim.parse(
+            await CaptureCodec.decode(await rpc({ type: "get", id: e.id })),
+            "AlphaSim · " + new Date(e.capturedAt).toLocaleString(),
+          ),
+        );
+      }
+      install(battles);
       history.replaceState(null, "", location.pathname);
     } catch (e) {
-      document.getElementById("importStatus").textContent =
-        "自动导入失败：" + e.message;
+      $("importStatus").textContent = "自动导入失败：" + e.message;
     }
   })();
 }

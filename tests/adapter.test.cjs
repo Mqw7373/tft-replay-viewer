@@ -12,15 +12,19 @@ test("all published examples match the offline bundle and expose their documente
     context,
   );
   const manifest = require("../examples/index.json");
-  assert.equal(manifest.length, 4);
+  assert.equal(manifest.length, 5);
   manifest.forEach((entry, i) => {
     const record = require("../examples/" + entry.file);
-    assert.equal(record.synthetic, true);
+    assert.equal(
+      record.synthetic === true ||
+        record.records?.every((r) => r.synthetic === true),
+      true,
+    );
     assert.equal(
       JSON.stringify(context.window.DEMO_EXAMPLES[i].record),
       JSON.stringify(record),
     );
-    parse(record);
+    require("../src/alphasim.js").parseRecords(record);
   });
   const dot = parse(require("../examples/delayed-dot.json"));
   assert.equal(dot.sides.my[1].cum[30], 0);

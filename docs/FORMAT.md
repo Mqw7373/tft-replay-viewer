@@ -1,6 +1,6 @@
 # Supported saved-log format
 
-This documents an observed response shape, not an official AlphaSim API contract. There is no network client or automatic simulator integration.
+This documents an observed response shape, not an official AlphaSim API contract. There is no network client. The optional extension observes caller-initiated single-battle responses and stores them locally.
 
 Accepted JSON roots:
 
@@ -10,7 +10,7 @@ Accepted JSON roots:
 <battle>
 ```
 
-Each imported file represents one battle. Monte Carlo summary responses are not supported. gzip is detected by its magic bytes, not the filename.
+A file may contain a single battle or a session envelope: `{ "format": "tft-replay-session/v1", "records": [<saved record>, ...] }`, with 1–100 records. Each batch may contain at most 100 battles and 512 MB of decoded JSON. Monte Carlo summary responses are not supported. gzip is detected by its magic bytes, not the filename.
 
 ## Required battle fields
 
@@ -45,3 +45,11 @@ The viewer preserves raw records for download. It does not recompute combat, nor
 See [`examples/demo.json`](../examples/demo.json), which is authored fictional data under MIT. It uses the wrapper format and contains no real champion statistics or exported service records.
 
 Some observed responses contain scheduled events after the final sampled state. These events are retained with a warning; selecting them shows the final two samples as reference only. The viewer never extends the time axis with fabricated states. Tiny floating-point differences in death times use a 1e-6 tolerance for the display.
+
+## Analysis semantics
+
+D(t) uses the latest recorded sample at or before t. It is missing when the final sample is earlier than t. No extrapolation, interpolation, or zero substitution is performed. Death does not truncate recorded residual damage. Team damage sums runtime units, including summons; known births gate padded samples, and positive pre-birth-unknown summon damage makes that metric unavailable. Terminal damage is separately taken from TotalDmg.
+
+The carry is a fixed initial-unit API name across trials, not the best performer selected anew each battle. Missing or duplicate same-name units have unavailable carry metrics. Survivors in a fight that ends before the survival horizon are unknown; recorded deaths before the horizon are known failures. A missing death timestamp is not extrapolated indefinitely.
+
+Groups compare canonical full request objects, preserving array order and excluding only top-level seed, randomSeed and iterations. Synthetic and imported records never share a group. Missing full lineups prevent automatic merging. Object key order does not matter. The request does not guarantee the same simulator version. Quantiles use linear interpolation at index `(n-1)*p`; unavailable values are excluded and the n/N coverage is always shown.

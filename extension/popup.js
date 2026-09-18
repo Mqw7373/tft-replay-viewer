@@ -1,41 +1,50 @@
 const $ = (id) => document.getElementById(id);
-let latest;
+let entries = [];
+async function rpc(message) {
+  const r = await chrome.runtime.sendMessage(message);
+  if (!r?.ok) throw new Error(r?.error || "扩展未响应");
+  return r.data;
+}
 async function refresh() {
-  const state = await chrome.storage.local.get(["latest", "captureError"]);
-  latest = state.latest;
-  $("status").textContent = latest
-    ? "已保存一场 · " + new Date(latest.capturedAt).toLocaleString()
-    : "尚未捕获战斗，请在 AlphaSim 手动模拟一次。";
-  $("error").textContent = state.captureError || "";
-  for (const id of ["open", "download"]) $(id).disabled = !latest;
-  $("clear").disabled = !latest && !state.captureError;
+  entries = await rpc({ type: "list" });
+  const { captureError } = await chrome.storage.local.get("captureError");
+  $("status").textContent = entries.length
+    ? `已保存 ${entries.length} 场 · 最近 ${new Date(entries.at(-1).capturedAt).toLocaleString()}`
+    : "尚未捕获战斗，请在 AlphaSim 手动模拟。";
+  $("error").textContent = captureError || "";
+  for (const id of ["open", "download"]) $(id).disabled = !entries.length;
+  $("clear").disabled = !entries.length && !captureError;
 }
 $("open").onclick = () =>
   chrome.tabs.create({
-    url: chrome.runtime.getURL(
-      "viewer/index.html#capture=" + encodeURIComponent(latest.id),
-    ),
+    url: chrome.runtime.getURL("viewer/index.html#history"),
   });
 $("download").onclick = async () => {
   try {
-    const record = await CaptureCodec.decode(latest),
-      a = document.createElement("a");
-    a.href = URL.createObjectURL(
-      new Blob([JSON.stringify(record, null, 2)], { type: "application/json" }),
-    );
-    a.download =
-      "alphasim-battle-" + latest.capturedAt.replace(/[:.]/g, "-") + ".json";
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    $("download").disabled = true;
+    const snapshot = entries.slice(),
+      records = [];
+    for (const e of snapshot)
+      records.push(
+        await CaptureCodec.decode(await rpc({ type: "get", id: e.id })),
+      );
+    await downloadSession(records);
+  } catch (e) {
+    $("error").textContent = e.message;
+  } finally {
+    $("download").disabled = !entries.length;
+  }
+};
+$("clear").onclick = async () => {
+  if (!confirm("清除全部本地战斗记录？需要留档请先导出。")) return;
+  try {
+    await rpc({ type: "clear" });
+    await refresh();
   } catch (e) {
     $("error").textContent = e.message;
   }
 };
-$("clear").onclick = async () => {
-  await chrome.storage.local.remove(["latest", "captureError"]);
-  await refresh();
-};
-chrome.storage.onChanged.addListener(refresh);
+chrome.storage.onChanged.addListener(() => refresh().catch(() => {}));
 refresh().catch((e) => {
   $("error").textContent = e.message;
 });

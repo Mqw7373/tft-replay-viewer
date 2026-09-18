@@ -2,7 +2,8 @@
 window.CaptureCodec = {
   async encode(record) {
     const json = JSON.stringify(record);
-    if (new TextEncoder().encode(json).length > 50 * 1024 * 1024)
+    const rawBytes = new TextEncoder().encode(json).length;
+    if (rawBytes > 50 * 1024 * 1024)
       throw new Error("记录超过 50 MB，上一场记录保留。");
     const bytes = new Uint8Array(
       await new Response(
@@ -16,6 +17,7 @@ window.CaptureCodec = {
       binary += String.fromCharCode(...bytes.subarray(i, i + 32768));
     return {
       id: crypto.randomUUID(),
+      rawBytes,
       capturedAt: record.capturedAt,
       encoding: "gzip-base64",
       data: btoa(binary),

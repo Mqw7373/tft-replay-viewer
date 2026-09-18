@@ -18,5 +18,10 @@
     "file": "death-summon.json",
     "label": "死亡与召唤物",
     "description": "母体 3 秒死亡并显示召唤物，召唤物 6 秒阵亡；演示已支持的出生推定规则。"
+  },
+  {
+    "file": "multi-battle.json",
+    "label": "多场输出对比（6 场）",
+    "description": "两种配置、不同战斗时长：比较 D5 / D10 / D20，并观察缺测场数。"
   }
 ]

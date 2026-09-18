@@ -1,13 +1,15 @@
-const { chromium } = require("playwright");
-const path = require("node:path"),
-  assert = require("node:assert/strict");
+const { chromium } = require("playwright"),
+  path = require("node:path"),
+  assert = require("node:assert/strict"),
+  fs = require("node:fs"),
+  zlib = require("node:zlib");
 require("../scripts/build-extension.cjs");
 async function until(fn) {
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 150; i++) {
     if (await fn()) return;
     await new Promise((r) => setTimeout(r, 100));
   }
-  throw new Error("Timed out waiting for extension state");
+  throw new Error("Extension state timeout");
 }
 const dir = path.resolve(__dirname, "../dist/extension");
 (async () => {
@@ -18,9 +20,9 @@ const dir = path.resolve(__dirname, "../dist/extension");
   });
   try {
     const worker =
-      context.serviceWorkers()[0] ||
-      (await context.waitForEvent("serviceworker"));
-    const id = worker.url().split("/")[2],
+        context.serviceWorkers()[0] ||
+        (await context.waitForEvent("serviceworker")),
+      id = worker.url().split("/")[2],
       fixture = require("../examples/demo.json");
     let requests = 0;
     await context.route("https://tftalphasim.com/**", async (route) => {
@@ -30,47 +32,81 @@ const dir = path.resolve(__dirname, "../dist/extension");
       } else
         await route.fulfill({
           contentType: "text/html",
-          body: "<!doctype html><title>Capture fixture</title><p>Controlled fixture — no live simulation.</p>",
+          body: "<!doctype html><p>Controlled fixture</p>",
         });
     });
     const host = await context.newPage();
     await host.goto("https://tftalphasim.com/simulator.html");
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${id}/popup.html`);
+    popup.on("dialog", (d) => d.accept());
+    const count = () => worker.evaluate(async () => (await readAll()).length);
     assert.equal(await popup.locator("#open").isDisabled(), true);
-    const observed = await host.evaluate(async (request) => {
-      const r = await fetch("/api/simulate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request),
-      });
-      return (await r.json()).winner;
-    }, fixture.request);
-    assert.equal(observed, "my");
-    await until(async () => !(await popup.locator("#open").isDisabled()));
-    let saved = await worker.evaluate(() => chrome.storage.local.get("latest"));
-    assert.ok(saved.latest.data);
+    assert.equal(
+      await host.evaluate(
+        async (request) =>
+          (
+            await (
+              await fetch("/api/simulate", {
+                method: "POST",
+                body: JSON.stringify(request),
+              })
+            ).json()
+          ).winner,
+        fixture.request,
+      ),
+      "my",
+    );
+    await until(async () => (await count()) === 1);
+    await host.evaluate(
+      (request) =>
+        new Promise((resolve) => {
+          const x = new XMLHttpRequest();
+          x.open("POST", "/api/simulate");
+          x.responseType = "json";
+          x.onload = () => resolve(x.response.winner);
+          x.send(JSON.stringify(request));
+        }),
+      fixture.request,
+    );
+    await host.evaluate(
+      async (request) =>
+        (
+          await (
+            await fetch(
+              new Request(location.origin + "/api/simulate", {
+                method: "POST",
+                body: JSON.stringify(request),
+              }),
+            )
+          ).json()
+        ).winner,
+      fixture.request,
+    );
+    await until(async () => (await count()) === 3);
+    await until(async () =>
+      (await popup.locator("#status").textContent()).includes("3 场"),
+    );
+    assert.equal(requests, 3);
     const next = context.waitForEvent("page");
     await popup.click("#open");
     const viewer = await next;
     await viewer.waitForLoadState();
     await until(async () =>
-      (await viewer.locator("#result").textContent()).includes("AlphaSim"),
+      (await viewer.locator("#analysisCount").textContent()).includes("3 场"),
     );
+    assert.equal(await viewer.locator("#groupSummary tr").count(), 1);
     assert.match(await viewer.locator("#request").textContent(), /myLineup/);
-    await viewer.selectOption("#unitSelect", "my:1");
-    await viewer.click("#firstImpact");
-    assert.match(await viewer.locator("#clock").innerText(), /2.0/);
-    const download = popup.waitForEvent("download");
+    await viewer.click('[data-replay="1"]');
+    assert.equal(await viewer.locator("#trial").inputValue(), "1");
+    const dl = popup.waitForEvent("download");
     await popup.click("#download");
-    const file = await download;
-    const downloaded = JSON.parse(
-      require("node:fs").readFileSync(await file.path(), "utf8"),
+    const file = await dl;
+    const exported = JSON.parse(
+      zlib.gunzipSync(fs.readFileSync(await file.path())),
     );
-    assert.deepEqual(downloaded.request, fixture.request);
-    assert.equal(downloaded.response.data.winner, "my");
-    // Error responses must retain the last successful capture and show the error.
-    const previous = saved.latest.id;
+    assert.equal(exported.records.length, 3);
+    assert.deepEqual(exported.records[0].request, fixture.request);
     await context.route("https://tftalphasim.com/api/simulate", (route) =>
       route.fulfill({ status: 500, json: { error: "fixture" } }),
     );
@@ -80,43 +116,58 @@ const dir = path.resolve(__dirname, "../dist/extension");
     await until(async () =>
       (await popup.locator("#error").textContent()).includes("500"),
     );
-    saved = await worker.evaluate(() => chrome.storage.local.get("latest"));
-    assert.equal(saved.latest.id, previous);
-    await context.unroute("https://tftalphasim.com/api/simulate");
-    // XHR and Request objects both preserve the site's original response.
-    await host.evaluate(
-      (request) =>
-        new Promise((resolve, reject) => {
-          const x = new XMLHttpRequest();
-          x.open("POST", "/api/simulate");
-          x.responseType = "json";
-          x.onload = () => resolve(x.response.winner);
-          x.onerror = reject;
-          x.send(JSON.stringify(request));
-        }),
-      fixture.request,
+    assert.equal(await count(), 3);
+    await popup.reload();
+    await until(async () =>
+      (await popup.locator("#status").textContent()).includes("3 场"),
     );
-    await until(
-      async () => (await popup.locator("#error").textContent()) === "",
-    );
-    const beforeRequest = (await worker.evaluate(() => chrome.storage.local.get("latest"))).latest.id;
-    await host.evaluate(async (request) => {
-      const req = new Request(location.origin + "/api/simulate", {
-        method: "POST",
-        body: JSON.stringify(request),
+    // Migration of a 0.1 local-storage capture keeps the old record, exactly once.
+    const old = await popup.evaluate(async (r) => {
+      const entry = await CaptureCodec.encode({
+        ...r,
+        capturedAt: new Date().toISOString(),
       });
-      return (await (await fetch(req)).json()).winner;
-    }, fixture.request);
-    await until(async () => (await worker.evaluate(() => chrome.storage.local.get("latest"))).latest.id !== beforeRequest);
-    assert.equal(requests, 3); // Exactly the three caller-issued successful requests, no extra simulation.
-    await popup.click("#clear");
-    assert.equal(await popup.locator("#open").isDisabled(), true);
-    const result = await worker.evaluate(() =>
-      chrome.storage.local.get("latest"),
+      await chrome.storage.local.set({ latest: entry });
+      return entry.id;
+    }, fixture);
+    await worker.evaluate(async () => {
+      await migrate();
+      await migrate();
+    });
+    assert.equal(await count(), 4);
+    assert.equal(
+      (await worker.evaluate(() => chrome.storage.local.get("latest"))).latest,
+      undefined,
     );
-    assert.equal(result.latest, undefined);
+    // Capacity is explicit: reaching 100 entries does not delete existing records.
+    const overflow = await popup.evaluate(async () => {
+      const list = await rpc({ type: "list" }),
+        sample = await rpc({ type: "get", id: list[0].id });
+      for (let i = list.length; i < 100; i++)
+        await rpc({
+          type: "save",
+          entry: { ...sample, id: crypto.randomUUID() },
+        });
+      try {
+        await rpc({
+          type: "save",
+          entry: { ...sample, id: crypto.randomUUID() },
+        });
+        return "";
+      } catch (e) {
+        return e.message;
+      }
+    });
+    assert.match(overflow, /容量上限/);
+    assert.equal(await count(), 100);
+    assert.ok(
+      (await worker.evaluate(() => readAll())).some((e) => e.id === old),
+    );
+    await popup.click("#clear");
+    await until(async () => (await count()) === 0);
+    await until(() => popup.locator("#open").isDisabled());
     console.log(
-      "PASS: installed extension captures fetch/Request/XHR, preserves responses, saves request+result, opens local replay, downloads and clears; no extra simulations.",
+      "PASS: history capture, grouping, gzip session export, error preservation, migration, capacity without eviction, clearing; exactly three requested simulations.",
     );
   } finally {
     await context.close();

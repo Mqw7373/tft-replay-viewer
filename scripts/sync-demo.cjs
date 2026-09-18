@@ -5,7 +5,7 @@ const examples = require("../examples/index.json").map((entry) => {
   const record = JSON.parse(
     fs.readFileSync(path.join(root, "examples", entry.file), "utf8"),
   );
-  require("../src/alphasim.js").parse(record);
+  require("../src/alphasim.js").parseRecords(record);
   return { ...entry, record };
 });
 fs.writeFileSync(

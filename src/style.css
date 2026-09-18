@@ -331,3 +331,16 @@ button:disabled {
 .unit text {
   pointer-events: none;
 }
+
+#analysisPanel table {
+  min-width: 1040px;
+}
+#analysisPanel small {
+  font-size: 11px;
+}
+#analysisPanel select {
+  max-width: 100%;
+}
+#analysisPanel th {
+  white-space: nowrap;
+}

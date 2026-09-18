@@ -1,6 +1,6 @@
 # TFT Replay Viewer
 
-在浏览器里回放、检查 TFT 战斗日志：伤害何时发生，单位如何移动，以及事件前后生命、护盾、法力发生了什么变化。
+比较多场 TFT 模拟战斗的 D(5)、D(10)、D(20)、输出稳定性和存活表现。按配置分组，点击异常场次再查看原始事件回放。
 
 **[在线体验](https://mqw7373.github.io/tft-replay-viewer/)** · [日志格式](docs/FORMAT.md) · [第三方来源](THIRD_PARTY_NOTICES.md)
 
@@ -17,11 +17,23 @@ AlphaSim 负责战斗模拟；本项目用于查看已保存的完整战斗日�
 
 ## 自动接收 AlphaSim 战斗（推荐）
 
-**安装一次扩展 → 在 AlphaSim 摆阵并手动模拟 → 点击扩展“打开回放”。** 无需 F12，也无需手工保存或导入 JSON。
+**安装一次扩展 → 在 AlphaSim 摆阵并手动模拟 → 点击扩展“打开多场分析”。** 无需 F12，也无需手工保存或导入 JSON。
 
 **[下载 Chrome / Edge 扩展 ZIP](https://mqw7373.github.io/tft-replay-viewer/tft-replay-bridge.zip)** · **[安装与使用说明](https://mqw7373.github.io/tft-replay-viewer/extension.html)** · [扩展源码](extension/)
 
-当前版本尚未上架扩展商店。详细安装步骤、使用方法和保存范围统一见上方“安装与使用说明”。扩展自带本地回放工具，只保留最新一场，不额外发起模拟、不上传日志。
+当前版本尚未上架扩展商店。详细安装步骤、使用方法和保存范围统一见上方“安装与使用说明”。扩展自带本地分析工具，追加保留最多 100 场，不额外发起模拟、不上传日志。
+
+## 多场分析
+
+- **全队 + 固定主 C**：同时查看 D(5)、D(10)、D(20)、终局伤害、首施法记录、首带 stage 字段的伤害、死亡时间和 10 / 20 秒存活率。主 C 可手动选择，不会逐场挑选当场伤害最高者。
+- **按完整输入分组**：双方阵容、星级、装备、站位、强化和其他设置相同才合并；仅忽略顶层随机种子与迭代次数。无完整 request 时单场单列。不同对手会编号，方便检查是否在同条件比较。
+- **稳定性与覆盖率**：D(t) 给出中位数、Q1–Q3 和有效场数 / 总场数。战斗或记录不足 t 秒时标缺测，不填零、不拿终局伤害冒充 D(t)。较晚时间点仅包含有记录的对局，可能有存活样本偏差。
+- **保留原始口径**：直接读取不晚于 t 的最后一个 CumDmg 采样，不插值；死亡后的残留伤害继续计入。它不是已校准的有效扣血。stage 只作为技能伤害候选标记，不能完整识别所有技能。分组也不能证明引擎版本相同，跨版本请分开导入。
+- **历史与导出**：扩展将记录压缩保存在本地 IndexedDB；最多 100 场，同时受 512 MB 原始总量和 32 MB 编码存储总量限制。达到上限会暂停采集并提示，绝不自动删除旧记录。支持整批导出 `.json.gz` 并重新导入。
+
+每次新的单场模拟请求才新增一条记录。可在 AlphaSim 使用重新抽样进行下一场；仅重播动画不会增加样本，也不应算作独立试验。扩展不自动批量调用模拟接口。
+
+**从扩展 0.1 升级到 0.2**：先备份旧 JSON，把新 ZIP 解压覆盖到原扩展文件夹，在扩展管理页点击“重新加载（Reload）”，再刷新 AlphaSim。保持原扩展身份才能保留存储；旧版最新一场会自动迁入历史，不要卸载后重装。
 
 ## 示例回放
 
@@ -29,23 +41,24 @@ AlphaSim 负责战斗模拟；本项目用于查看已保存的完整战斗日�
 
 | 示例文件 | 建议观察的过程 |
 | --- | --- |
+| [多场输出对比：6 场、2 种配置](examples/multi-battle.json) | 比较中位数与四分位区间，观察短场次在 D(10) / D(20) 中被标记为缺测。默认打开此示例。 |
 | [基础回放](examples/demo.json) | 8 秒两对两，体验播放、施法、伤害曲线与阵亡事件。 |
 | [延迟与持续伤害](examples/delayed-dot.json) | 我方法师 2.5 秒施法，3.1 秒打出 240，4.1／5.1／6.1 秒各打出 120；观察 D(t) 的启动延迟和阶梯增长。 |
 | [护盾与回复](examples/shield-heal.json) | 选中我方前排：1 秒获得 300 护盾；2 秒受到 200 伤害；3 秒再受 250，血量降至 850；4 秒回复到 950；5 秒再受 350，剩 600。 |
 | [死亡与召唤物](examples/death-summon.json) | 母体 3 秒死亡后召唤物出现在棋盘，6 秒阵亡。出生前补齐快照不会被画成开战单位。 |
 
-四组均为本项目编写、随 MIT 许可证提供的**虚构示例**，不是真实游戏录像，也不是 AlphaSim 实战输出。召唤示例仅使用适配器识别的死亡召唤标识来演示显示规则，不表示真实英雄数值。护盾场景中的负值事件由示例作者设为回复；对外部日志，查看器仍将该字段语义标为未核实。
+所有示例均为本项目编写、随 MIT 许可证提供的**虚构示例**，不是真实游戏录像，也不是 AlphaSim 实战输出。召唤示例仅使用适配器识别的死亡召唤标识来演示显示规则，不表示真实英雄数值。护盾场景中的负值事件由示例作者设为回复；对外部日志，查看器仍将该字段语义标为未核实。
 
 ## 使用
 
 1. 打开在线页面，或下载仓库后直接双击 `index.html`。不需要安装 Node.js。
-2. 点击“选择日志”，或者把 `.json` / `.json.gz` 拖入页面。支持一次导入最多 20 个单场日志文件。
+2. 点击“选择日志”，或者把 `.json` / `.json.gz` 拖入页面。支持一次载入最多 100 场，可选择多个单场文件，或一个导出的多场记录文件。导入会替换当前已载入批次。
 3. 切换场次、播放或拖动时间轴。点击单位查看属性与累计伤害，点击事件查看原始字段和相邻采样状态。
 4. 可下载当前原始日志；只有原文件带 `request` 时，才能导出开战请求。
 
 文件仅在当前浏览器解析，不上传；刷新页面后清除。应用没有统计脚本、外部字体、图片 CDN 或 API 请求。访问在线站点本身仍会连接 GitHub Pages。
 
-使用支持 `DecompressionStream` 的现代浏览器导入 gzip；不支持时可先自行解压为 JSON。单文件最大 50 MB，解压后最大 100 MB。
+使用支持 `DecompressionStream` 的现代浏览器导入 gzip；不支持时可先自行解压为 JSON。单文件最大 50 MB，解压后合计最大 512 MB。
 
 ## 支持范围
 
@@ -70,7 +83,7 @@ AlphaSim 负责战斗模拟；本项目用于查看已保存的完整战斗日�
 运行应用没有构建步骤、没有运行时依赖。Node.js 22+ 只用于开发检查：
 
 ```sh
-node --test tests/adapter.test.cjs
+node --test tests/adapter.test.cjs tests/analysis.test.cjs
 npm ci
 npx playwright install chromium
 npm run test:browser
@@ -81,12 +94,14 @@ npm run test:extension
 
 扩展集成测试使用 Playwright 自带 Chromium 和临时用户目录，通过模拟接口响应验证自动采集，不调用线上模拟服务。`npm run build:extension` 生成可加载的 `dist/extension/`；GitHub Actions 会将安装 ZIP 随 Pages 发布。
 
-`examples/index.json` 列出示例，JSON 文件为数据源；修改后运行 `npm run sync-demo` 更新直接打开网页所需的 `examples/demo.js`。测试会检查打包数据与源文件一致。新增的三组场景可通过 `node scripts/build-examples.cjs` 重新生成。
+`examples/index.json` 列出示例，JSON 文件为数据源；修改后运行 `npm run sync-demo` 更新直接打开网页所需的 `examples/demo.js`。测试会检查打包数据与源文件一致。三个单场场景可通过 `node scripts/build-examples.cjs` 重新生成；多场示例使用 `node scripts/build-analysis-example.cjs`，之后执行 `npm run sync-demo`。
 
 ```text
 index.html             页面与控件
 src/viewer.js          棋盘、播放、曲线与导入交互
 src/alphasim.js        已知日志格式校验及转换
+src/analysis.js       D(t)、分组与分位数计算
+src/analysis-ui.js    多场统计与逐场对照
 src/style.css         样式
 examples/             自制示例
 tests/                解析与浏览器交互检查
@@ -104,4 +119,4 @@ tests/                解析与浏览器交互检查
 
 ## English
 
-A static, local-first viewer for TFT combat logs. Open `index.html` and import a supported AlphaSim JSON / gzip log. Inspect sampled positions, stats, cumulative damage and raw events. No server, login, game assets or simulation engine is bundled. The included fixture is synthetic. Unknown engine semantics remain explicitly unknown; this is not proof of in-game accuracy.
+A static, local-first multi-battle analyzer for TFT combat logs. Compare D5/D10/D20 distributions and survival across configurations; drill into individual replays. The extension retains up to 100 local battles and exports gzip sessions. Open `index.html` and import a supported AlphaSim JSON / gzip log. Inspect sampled positions, stats, cumulative damage and raw events. No server, login, game assets or simulation engine is bundled. The included fixture is synthetic. Unknown engine semantics remain explicitly unknown; this is not proof of in-game accuracy.

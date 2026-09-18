@@ -16,10 +16,15 @@
           const record = message.record;
           AlphaSim.parse(record);
           const latest = await CaptureCodec.encode(record);
-          await chrome.storage.local.set({ latest, captureError: null });
+          const result = await chrome.runtime.sendMessage({
+            type: "save",
+            entry: latest,
+          });
+          if (!result?.ok) throw new Error(result?.error || "无法保存记录。");
         } catch (e) {
-          await chrome.storage.local.set({
-            captureError: String(e.message).slice(0, 300),
+          await chrome.runtime.sendMessage({
+            type: "capture-error",
+            error: String(e.message).slice(0, 300),
           });
         }
       })

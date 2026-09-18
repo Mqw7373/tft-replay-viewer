@@ -3,13 +3,14 @@
   <meta charset="utf-8" /><meta
     name="viewport"
     content="width=device-width,initial-scale=1"
-  /><title>TFT Replay Viewer · 战斗日志回放</title>
+  /><title>TFT Replay Viewer · 多场战斗分析</title>
   <link rel="stylesheet" href="src/style.css" />
   <main>
     <div class="eyebrow">TFT REPLAY VIEWER / OPEN SOURCE</div>
-    <h1>TFT Replay Viewer · 战斗日志回放</h1>
+    <h1>TFT Replay Viewer · 多场战斗分析</h1>
     <p class="muted">
-      导入战斗日志，核对位置、状态与伤害事件。文件只在当前浏览器处理，不上传。
+      比较多场战斗的
+      D(5)、D(10)、D(20)、出伤节奏和存活表现。文件只在当前浏览器处理，不上传。
     </p>
     <p>
       <a href="extension.html"
@@ -33,7 +34,7 @@
       <button id="downloadExample">下载示例 JSON</button>
       <p id="exampleDescription" class="muted"></p>
       <p class="muted">
-        也可拖入 JSON / JSON.gz；最多 20 场，单文件 50 MB，解压后 100
+        也可拖入 JSON / JSON.gz；最多 100 场，单文件 50 MB，解压合计 512
         MB。支持完整 AlphaSim 单场响应及 request / response 包装记录。
       </p>
       <p id="importStatus" role="status" aria-live="polite"></p>
@@ -42,7 +43,92 @@
       <strong>这是日志查看器，不是真实游戏录像。</strong
       >采样间隔以导入的时间轴为准；事件给出了结算数值，但没有完整返回伤害公式、暴击判定和减伤计算链。因此这里能核对“输入与输出”，不能证明模拟器与游戏一致。
     </div>
-    <section class="panel">
+    <section class="panel below" id="analysisPanel">
+      <h2>多场对比 · 输出节奏与稳定性</h2>
+      <div class="toolbar">
+        <label
+          >阵营
+          <select id="analysisSide">
+            <option value="my">我方</option>
+            <option value="en">对手</option>
+          </select></label
+        ><label
+          >主 C
+          <select id="analysisCarry"></select></label
+        ><button id="exportSession">导出已载入的全部记录</button>
+      </div>
+      <p id="analysisCount" class="muted"></p>
+      <p class="muted">
+        单元格：中位数 [Q1, Q3] · 有效场数/总场数。全队含召唤物；主 C 固定同一
+        API 单位。缺测不填零，终局伤害另列。
+      </p>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>配置组</th>
+              <th>战果</th>
+              <th>全队 D(5)</th>
+              <th>全队 D(10)</th>
+              <th>全队 D(20)</th>
+              <th>主 C D(5)</th>
+              <th>主 C D(10)</th>
+              <th>主 C D(20)</th>
+              <th>主 C 存活率<br />10s / 20s</th>
+            </tr>
+          </thead>
+          <tbody id="groupSummary"></tbody>
+        </table>
+      </div>
+      <p class="muted">
+        不同对手单独编号。跨对手的战果不可当作同条件胜率排名；较晚时间点只统计仍有记录的对局，可能存在存活样本偏差。
+      </p>
+      <div class="toolbar below">
+        <label
+          >逐场明细
+          <select id="analysisGroup"></select
+        ></label>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>方案 / 回放</th>
+              <th>记录</th>
+              <th>全队 D(5)</th>
+              <th>全队 D(10)</th>
+              <th>全队 D(20)</th>
+              <th>主 C D(5)</th>
+              <th>主 C D(10)</th>
+              <th>主 C D(20)</th>
+              <th>终局伤害<br />全队 / 主 C</th>
+              <th>主 C 时间(s)<br />首施法 / 首 stage 伤害 / 死亡</th>
+            </tr>
+          </thead>
+          <tbody id="battleRows"></tbody>
+        </table>
+      </div>
+      <details>
+        <summary>统计口径与配置对照</summary>
+        <p>
+          输入相同才分组，包括双方星级、装备、站位、羁绊设置和强化；仅忽略请求顶层
+          seed、randomSeed、iterations。缺少完整 request
+          的记录单独列组。分组不证明引擎版本相同，跨版本请分开导入。
+        </p>
+        <p>
+          D(t) 取不晚于 t
+          的最近状态采样，不插值，不把日志累计伤害解释为有效扣血。英雄死亡后的残留伤害继续按日志统计；整场记录不足
+          t 秒时显示缺测。将鼠标放到逐场数值上可查看取样时刻。
+        </p>
+        <p>
+          首 stage 伤害是首次带 stage
+          字段的正伤害，仅为技能伤害候选，不能识别所有英雄的技能。死亡时间没有返回时不推定为一直存活；早早结束且未死亡的对局，其较晚存活状态未知。分位数使用排序后线性插值（type
+          7）。
+        </p>
+        <div id="groupConfigs"></div>
+      </details>
+    </section>
+    <section class="panel below" id="replayControls">
       <div class="toolbar">
         <label
           >场次
@@ -191,5 +277,8 @@
   </main>
   <script defer src="src/alphasim.js"></script>
   <script defer src="examples/demo.js"></script>
+  <script defer src="src/analysis.js"></script>
+  <script defer src="src/session.js"></script>
   <script defer src="src/viewer.js"></script>
+  <script defer src="src/analysis-ui.js"></script>
 </html>

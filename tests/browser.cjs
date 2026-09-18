@@ -22,14 +22,31 @@ const fs = require("node:fs");
     });
     await page.goto(pathToFileURL(path.join(__dirname, "../index.html")).href);
     assert.match(await page.locator("#importStatus").innerText(), /自制示例/);
+    assert.equal(await page.locator("#groupSummary tr").count(), 2);
+    assert.equal(await page.locator("#battleRows tr").count(), 6);
+    assert.match(await page.locator("#groupSummary").innerText(), /2\/4 场/);
+    await page.click('[data-group="1"]');
+    assert.equal(await page.locator("#battleRows tr").count(), 2);
+    await page.click('[data-replay="4"]');
+    assert.equal(await page.locator("#trial").inputValue(), "4");
+    await page.selectOption("#trial", "0");
+    const sessionDownload = page.waitForEvent("download");
+    await page.click("#exportSession");
+    const session = await sessionDownload;
+    await page.locator("#files").setInputFiles(await session.path());
+    await page.waitForFunction(
+      () => !document.querySelector("#files").disabled,
+    );
+    assert.equal(await page.locator("#groupSummary tr").count(), 2);
+    assert.equal(await page.locator("#trial option").count(), 6);
     await page.selectOption("#unitSelect", "my:1");
     await page.locator("#firstCast").click();
     assert.match(await page.locator("#clock").innerText(), /1.6/);
     await page.locator("#firstImpact").click();
     assert.match(await page.locator("#clock").innerText(), /2.0/);
     assert.match(await page.locator("#eventDetail").innerText(), /200/);
-    assert.equal(await page.locator("#exampleSelect option").count(), 4);
-    for (let i = 0; i < 4; i++) {
+    assert.equal(await page.locator("#exampleSelect option").count(), 5);
+    for (let i = 0; i < 5; i++) {
       await page.selectOption("#exampleSelect", String(i));
       await page.click("#demo");
       assert.match(await page.locator("#importStatus").innerText(), /自制示例/);

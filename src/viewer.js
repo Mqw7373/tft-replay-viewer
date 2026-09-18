@@ -466,14 +466,15 @@ function install(battles) {
     )
     .join("");
   load(0);
+  if (typeof setupAnalysis === "function") setupAnalysis();
 }
 let importing = false;
 async function importFiles(files) {
   if (importing) return;
   const list = Array.from(files);
   if (!list.length) return;
-  if (list.length > 20) {
-    $("importStatus").textContent = "一次最多导入 20 个文件。";
+  if (list.length > 100) {
+    $("importStatus").textContent = "一次最多导入 100 个文件。";
     return;
   }
   importing = true;
@@ -484,7 +485,14 @@ async function importFiles(files) {
   $("importStatus").textContent = "正在本地解析…";
   try {
     const parsed = [];
-    for (const file of list) parsed.push(await AlphaSim.readFile(file));
+    let bytes = 0;
+    for (const file of list) {
+      const records = await AlphaSim.readRecords(file);
+      bytes += records.rawBytes;
+      parsed.push(...records);
+      if (parsed.length > 100 || bytes > 512 * 1024 * 1024)
+        throw new Error("最多载入 100 场，解压总量不超过 512 MB。");
+    }
     install(parsed);
   } catch (error) {
     $("importStatus").textContent =
@@ -510,12 +518,15 @@ function describeExample() {
 $("exampleSelect").onchange = describeExample;
 $("demo").onclick = () => {
   const entry = exampleChoice();
-  install([AlphaSim.parse(entry.record, entry.label)]);
+  install(AlphaSim.parseRecords(entry.record, entry.label));
 };
 $("downloadExample").onclick = () => {
   const entry = exampleChoice();
   download(entry.record, entry.file);
 };
+$("exampleSelect").value = String(
+  window.DEMO_EXAMPLES.findIndex((e) => e.file === "multi-battle.json"),
+);
 describeExample();
 window.addEventListener("dragover", (e) => {
   e.preventDefault();
@@ -532,5 +543,5 @@ window.addEventListener("drop", (e) => {
 window.addEventListener("resize", () => {
   if (battle) drawChart();
 });
-install([AlphaSim.parse(window.DEMO_LOG, window.DEMO_EXAMPLES[0].label)]);
+install(AlphaSim.parseRecords(exampleChoice().record, exampleChoice().label));
 requestAnimationFrame(tick);
