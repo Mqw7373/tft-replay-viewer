@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" /><title>TFT Replay Bridge</title>
+  <link rel="stylesheet" href="popup.css" />
+  <main>
+    <h1>TFT Replay Bridge</h1>
+    <p id="status" role="status">正在读取本地记录…</p>
+    <p id="error" role="alert"></p>
+    <button id="open" disabled>打开回放</button
+    ><button id="download" disabled>下载 JSON</button>
+    <button id="clear" disabled>清除本地记录</button>
+    <p>
+      在 AlphaSim 点击一次“开始”，完成后自动保存最新一场。首次安装后请刷新
+      AlphaSim。
+    </p>
+    <p>
+      只保存在当前浏览器；新结果覆盖上一场。不读取 Cookie 或请求头，不上传日志。
+    </p>
+    <a
+      href="https://tftalphasim.com/simulator.html?locale=en"
+      target="_blank"
+      rel="noreferrer"
+      >打开 AlphaSim</a
+    >
+  </main>
+  <script src="viewer/src/capture-codec.js"></script>
+  <script src="popup.js"></script>
+</html>

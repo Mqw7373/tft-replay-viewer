@@ -22,16 +22,18 @@ jobs:
       - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
+      - run: npm run test:extension
       - name: Prepare static site
         if: github.event_name != 'pull_request'
         run: |
-          mkdir dist
-          cp index.html dist/
-          cp -r src examples dist/
+          mkdir -p dist/site
+          cp index.html extension.html dist/site/
+          cp -r src examples dist/site/
+          (cd dist/extension && zip -qr ../site/tft-replay-bridge.zip .)
       - uses: actions/upload-pages-artifact@v4
         if: github.event_name != 'pull_request'
         with:
-          path: dist
+          path: dist/site
   deploy:
     if: github.event_name != 'pull_request'
     needs: test

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>自动接收 AlphaSim 回放</title
+  ><link rel="stylesheet" href="src/style.css" />
+  <main>
+    <div class="eyebrow">TFT REPLAY BRIDGE / CHROME & EDGE</div>
+    <h1>模拟结束，直接打开回放</h1>
+    <p>
+      在 AlphaSim
+      摆好阵容并手动模拟，扩展自动保存最新一场的阵容输入和战斗结果。点击扩展里的“打开回放”即可查看，无需
+      F12 或手工复制 JSON。
+    </p>
+    <section class="panel below">
+      <h2>首次安装</h2>
+      <p>
+        <a href="tft-replay-bridge.zip" download>下载扩展 ZIP</a> ·
+        <a
+          href="https://github.com/Mqw7373/tft-replay-viewer/tree/main/extension"
+          >查看源码</a
+        >
+      </p>
+      <ol>
+        <li>解压 ZIP，将文件夹放到固定位置。</li>
+        <li>
+          Chrome 地址栏输入 <code>chrome://extensions</code>；Edge 输入
+          <code>edge://extensions</code>。
+        </li>
+        <li>
+          开启“开发者模式”，点击“加载已解压的扩展”，选择含有
+          <code>manifest.json</code> 的文件夹。
+        </li>
+        <li>
+          在浏览器扩展菜单中固定
+          <strong>TFT Replay Bridge</strong>，然后刷新已经打开的 AlphaSim 页面。
+        </li>
+      </ol>
+      <p class="muted">
+        当前提供开源的本地安装包，尚未上架扩展商店。安装步骤只需做一次；更新时解压新包并在扩展管理页重新加载。
+      </p>
+    </section>
+    <section class="panel below">
+      <h2>每次使用</h2>
+      <ol>
+        <li>
+          打开
+          <a
+            href="https://tftalphasim.com/simulator.html?locale=en"
+            target="_blank"
+            rel="noreferrer"
+            >AlphaSim 模拟器</a
+          >，摆好双方阵容，点击“开始”运行单场。
+        </li>
+        <li>模拟成功后，扩展图标会出现 <strong>1</strong>。</li>
+        <li>
+          点击扩展 → <strong>打开回放</strong>。回放工具随扩展打包，在本地打开。
+        </li>
+        <li>
+          需要长期留档时，点击 <strong>下载 JSON</strong>。不需要的记录可用
+          <strong>清除本地记录</strong> 删除。
+        </li>
+      </ol>
+    </section>
+    <section class="panel below">
+      <h2>保存范围</h2>
+      <p>
+        只观察
+        <code>https://tftalphasim.com/api/simulate</code> 的单场请求；不读取
+        Cookie、请求头或其他站点内容，不替你发起模拟，不上传日志。只保留最新一场，成功的新结果会覆盖旧记录；失败结果不会覆盖上一场。
+      </p>
+      <p>
+        只授予浏览器本地存储权限，以及在 AlphaSim
+        页面运行采集脚本的站点访问。压缩记录上限 6 MB、原始记录上限 50
+        MB；超限或字段不兼容时在扩展中提示。安装前已完成的对局无法补取，请刷新后再模拟一次。
+      </p>
+      <p>
+        出现 <strong>!</strong> 时点开扩展查看原因。若 AlphaSim
+        改变接口或日志格式，可能需要更新扩展。批量胜率统计不作为单场回放保存。
+      </p>
+    </section>
+    <p><a href="index.html">返回网页版回放工具</a></p>
+  </main>
+</html>

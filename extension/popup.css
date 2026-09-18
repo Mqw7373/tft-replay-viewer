@@ -1,0 +1,43 @@
+:root {
+  color-scheme: dark;
+}
+body {
+  width: 320px;
+  margin: 0;
+  background: #101927;
+  color: #edf3fb;
+  font:
+    14px/1.6 system-ui,
+    sans-serif;
+}
+main {
+  padding: 20px;
+}
+h1 {
+  font-size: 20px;
+}
+p {
+  overflow-wrap: anywhere;
+}
+button {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin: 9px 0;
+  border: 1px solid #457084;
+  border-radius: 6px;
+  background: #184052;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+a {
+  color: #66d9ee;
+}
+#error {
+  color: #ffad92;
+}

@@ -7,8 +7,14 @@
   "scripts": {
     "test": "node --test tests/adapter.test.cjs",
     "test:browser": "node tests/browser.cjs",
-    "sync-demo": "node scripts/sync-demo.cjs"
+    "sync-demo": "node scripts/sync-demo.cjs",
+    "build:extension": "node scripts/build-extension.cjs",
+    "test:extension": "node tests/extension.cjs"
   },
-  "devDependencies": { "playwright": "1.62.1" },
-  "engines": { "node": ">=22" }
+  "devDependencies": {
+    "playwright": "1.62.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
 }

@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "TFT Replay Bridge",
+  "version": "0.1.0",
+  "minimum_chrome_version": "111",
+  "description": "自动保存 AlphaSim 单场战斗记录，在本地打开回放或下载 JSON。",
+  "permissions": ["storage"],
+  "action": {
+    "default_title": "TFT Replay Bridge",
+    "default_popup": "popup.html"
+  },
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://tftalphasim.com/*"],
+      "js": [
+        "viewer/src/alphasim.js",
+        "viewer/src/capture-codec.js",
+        "bridge.js"
+      ],
+      "run_at": "document_start",
+      "world": "ISOLATED"
+    },
+    {
+      "matches": ["https://tftalphasim.com/*"],
+      "js": ["capture.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    }
+  ]
+}
