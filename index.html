@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>TFT Replay Viewer · 战斗日志回放</title>
+  <link rel="stylesheet" href="src/style.css" />
+  <main>
+    <div class="eyebrow">TFT REPLAY VIEWER / OPEN SOURCE</div>
+    <h1>TFT Replay Viewer · 战斗日志回放</h1>
+    <p class="muted">
+      导入战斗日志，核对位置、状态与伤害事件。文件只在当前浏览器处理，不上传。
+    </p>
+    <section id="dropzone" class="panel import-panel" aria-label="导入日志">
+      <label class="file-label"
+        >选择日志
+        <input
+          id="files"
+          type="file"
+          accept=".json,.gz,application/json,application/gzip"
+          multiple /></label
+      ><button id="demo">加载自制示例</button>
+      <p class="muted">
+        也可拖入 JSON / JSON.gz；最多 20 场，单文件 50 MB，解压后 100
+        MB。支持完整 AlphaSim 单场响应及 request / response 包装记录。
+      </p>
+      <p id="importStatus" role="status" aria-live="polite"></p>
+    </section>
+    <div class="notice">
+      <strong>这是日志查看器，不是真实游戏录像。</strong
+      >采样间隔以导入的时间轴为准；事件给出了结算数值，但没有完整返回伤害公式、暴击判定和减伤计算链。因此这里能核对“输入与输出”，不能证明模拟器与游戏一致。
+    </div>
+    <section class="panel">
+      <div class="toolbar">
+        <label
+          >场次
+          <select id="trial" aria-label="选择比赛场次"></select></label
+        ><span id="result" class="muted"></span><span style="flex: 1"></span
+        ><span id="clock" class="time">0.0 s</span>
+      </div>
+      <div class="toolbar">
+        <button class="primary" id="play">▶ 播放</button
+        ><button id="back">−0.1 秒</button><button id="next">+0.1 秒</button
+        ><label
+          >速度
+          <select id="speed">
+            <option value="0.5">0.5×</option>
+            <option selected value="1">1×</option>
+            <option value="2">2×</option>
+            <option value="4">4×</option>
+          </select></label
+        ><button id="firstCast">选中单位首次施法</button
+        ><button id="firstImpact">首次伤害记录</button
+        ><button id="ten">10 秒</button><button id="end">最后一帧</button>
+      </div>
+      <input
+        id="seek"
+        type="range"
+        min="0"
+        step="1"
+        value="0"
+        aria-label="战斗时间轴"
+      />
+    </section>
+    <div class="layout below">
+      <section class="panel">
+        <h2>战场状态 <small>点击单位查看数值</small></h2>
+        <div class="legend">
+          <span style="color: var(--red)">上方 · 对手</span
+          ><span style="color: var(--blue)">下方 · 我方</span>
+        </div>
+        <div class="boardwrap">
+          <svg
+            id="board"
+            viewBox="0 0 630 620"
+            role="img"
+            aria-label="双方战场位置"
+          ></svg>
+        </div>
+        <p class="muted" style="font-size: 12px">
+          按接口 cx / cy
+          连续坐标绘制示意图；不补造弹道。深色单位表示阵亡。零时刻快照可能已发生移动，开战棋格以文末请求表为准。
+        </p>
+      </section>
+      <section class="panel">
+        <div class="toolbar">
+          <h2 style="margin: 0" id="unitTitle"></h2>
+          <select id="unitSelect" aria-label="选择单位"></select>
+        </div>
+        <div id="gear" class="chips"></div>
+        <div id="stats" class="stats"></div>
+        <p id="unitState" class="muted"></p>
+        <h2 style="margin-top: 18px">累计伤害 D(t)</h2>
+        <div class="legend">
+          <span id="curveLegend"></span><span id="damageTotal"></span>
+        </div>
+        <canvas
+          id="chart"
+          class="chart"
+          aria-label="选中单位累计伤害曲线"
+        ></canvas>
+        <p class="muted" style="font-size: 12px">
+          直接使用接口
+          CumDmg，不等同于扣除过量伤害后的有效生命损失。点击曲线跳转时间。
+        </p>
+        <details>
+          <summary>该单位的技能参数与加载属性（原始字段）</summary>
+          <pre id="ability"></pre>
+        </details>
+      </section>
+      <section class="panel">
+        <h2>事件时间线</h2>
+        <div class="toolbar">
+          <label
+            ><input type="checkbox" id="onlyUnit" checked />只看选中单位</label
+          ><label><input type="checkbox" id="showBurn" />包含 burn 记录</label
+          ><select id="eventKind" aria-label="事件类型">
+            <option value="all">全部类型</option>
+            <option value="cast">施法</option>
+            <option value="damage">伤害</option>
+            <option value="heal">负值 / 回复</option>
+            <option value="death">死亡</option>
+          </select>
+        </div>
+        <p class="muted" style="font-size: 12px">
+          包括完整对局的事件；灰色为当前时刻之后。点击任一事件跳转并核对。
+        </p>
+        <div id="events" class="events"></div>
+        <small id="eventCount"></small>
+      </section>
+      <section class="panel">
+        <h2>单次事件验算</h2>
+        <div id="eventDetail">
+          点击左侧事件，查看返回值、来源与目标的采样状态。
+        </div>
+      </section>
+    </div>
+
+    <section class="panel below">
+      <h2>本场开战配置与可复核文件</h2>
+      <p class="muted">
+        若日志附带 request，显示原始输入棋格 row / col（从 0
+        开始）；没有请求时不从移动后的快照反推开战站位。名称缺失时显示 API
+        标识。
+      </p>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>阵营</th>
+              <th>单位</th>
+              <th>星级</th>
+              <th>棋格 (row, col)</th>
+              <th>装备</th>
+              <th>额外字段</th>
+            </tr>
+          </thead>
+          <tbody id="roster"></tbody>
+        </table>
+      </div>
+      <div class="toolbar below">
+        <button id="downloadLog">下载本场原始日志 JSON</button
+        ><button id="downloadRequest" class="smallbtn">
+          下载本场请求 JSON
+        </button>
+      </div>
+      <details>
+        <summary>展开完整输入 JSON</summary>
+        <pre id="request"></pre>
+      </details>
+      <p class="muted" style="font-size: 12px">
+        召唤物快照可能含出生前补齐值。当前仅支持石甲虫死亡召唤的出生推定；其他召唤物出生时间未知时隐藏棋盘位置，并显示提示。负值伤害事件的目标归属未核实，不强行解释为攻击敌方。
+      </p>
+    </section>
+    <footer>
+      TFT Replay Viewer · MIT · 非官方社区日志工具，与 Riot Games 或 AlphaSim
+      无隶属关系。页面不计算战斗结果。
+    </footer>
+  </main>
+  <script defer src="src/alphasim.js"></script>
+  <script defer src="examples/demo.js"></script>
+  <script defer src="src/viewer.js"></script>
+</html>

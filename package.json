@@ -1,0 +1,14 @@
+{
+  "name": "tft-replay-viewer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first TFT combat-log viewer; no simulation engine included",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test tests/adapter.test.cjs",
+    "test:browser": "node tests/browser.cjs",
+    "sync-demo": "node scripts/sync-demo.cjs"
+  },
+  "devDependencies": { "playwright": "1.62.1" },
+  "engines": { "node": ">=22" }
+}
