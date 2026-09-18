@@ -12,12 +12,13 @@ async function refresh() {
     ? `已保存 ${entries.length} 场 · 最近 ${new Date(entries.at(-1).capturedAt).toLocaleString()}`
     : "尚未捕获战斗，请在 AlphaSim 手动模拟。";
   $("error").textContent = captureError || "";
-  for (const id of ["open", "download"]) $(id).disabled = !entries.length;
+  $("open").disabled = false;
+  $("download").disabled = !entries.length;
   $("clear").disabled = !entries.length && !captureError;
 }
 $("open").onclick = () =>
-  chrome.tabs.create({
-    url: chrome.runtime.getURL("viewer/index.html#history"),
+  rpc({ type: "open-analysis" }).catch((e) => {
+    $("error").textContent = e.message;
   });
 $("download").onclick = async () => {
   try {

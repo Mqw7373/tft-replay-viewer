@@ -1,4 +1,5 @@
 (() => {
+  chrome.runtime.sendMessage({ type: "host-ready" }).catch(() => {});
   let queue = Promise.resolve();
   window.addEventListener("message", (event) => {
     if (

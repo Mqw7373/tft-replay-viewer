@@ -470,6 +470,11 @@ function install(battles) {
 }
 let importing = false;
 async function importFiles(files) {
+  if ($("liveStatus")) {
+    $("liveStatus").textContent =
+      "此页自动同步扩展记录；手工导入文件请使用网页版分析工具。";
+    return;
+  }
   if (importing) return;
   const list = Array.from(files);
   if (!list.length) return;

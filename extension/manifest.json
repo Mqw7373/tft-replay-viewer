@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "TFT Replay Bridge",
-  "version": "0.2.0",
-  "minimum_chrome_version": "111",
+  "version": "0.2.1",
+  "minimum_chrome_version": "116",
   "description": "自动留存 AlphaSim 多场战斗，比较 D5 / D10 / D20、输出稳定性与存活表现。",
   "permissions": ["storage"],
   "action": {

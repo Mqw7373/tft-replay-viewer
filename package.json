@@ -1,6 +1,6 @@
 {
   "name": "tft-replay-viewer",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Local-first TFT combat-log viewer; no simulation engine included",
   "license": "MIT",

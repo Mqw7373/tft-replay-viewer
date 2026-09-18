@@ -36,12 +36,34 @@ const dir = path.resolve(__dirname, "../dist/extension");
         });
     });
     const host = await context.newPage();
+    const opened = context.waitForEvent("page");
     await host.goto("https://tftalphasim.com/simulator.html");
+    const viewer = await opened;
+    await viewer.waitForLoadState();
+    await until(async () =>
+      (await viewer.locator("#liveStatus").textContent()).includes("等待模拟"),
+    );
+    assert.equal(await viewer.locator("#analysisPanel").isVisible(), false);
+    assert.equal(
+      await host.evaluate(() => document.visibilityState),
+      "visible",
+    );
+    // Reloads and simultaneous AlphaSim tabs reuse the existing analysis tab.
+    await host.reload();
+    const secondHost = await context.newPage();
+    await secondHost.goto("https://tftalphasim.com/simulator.html");
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${id}/popup.html`);
     popup.on("dialog", (d) => d.accept());
     const count = () => worker.evaluate(async () => (await readAll()).length);
-    assert.equal(await popup.locator("#open").isDisabled(), true);
+    await until(async () => !(await popup.locator("#open").isDisabled()));
+    await popup.click("#open");
+    assert.equal(
+      context
+        .pages()
+        .filter((p) => p.url().includes("viewer/index.html#history")).length,
+      1,
+    );
     assert.equal(
       await host.evaluate(
         async (request) =>
@@ -58,6 +80,9 @@ const dir = path.resolve(__dirname, "../dist/extension");
       "my",
     );
     await until(async () => (await count()) === 1);
+    await until(async () =>
+      (await viewer.locator("#analysisCount").textContent()).includes("1 场"),
+    );
     await host.evaluate(
       (request) =>
         new Promise((resolve) => {
@@ -88,10 +113,13 @@ const dir = path.resolve(__dirname, "../dist/extension");
       (await popup.locator("#status").textContent()).includes("3 场"),
     );
     assert.equal(requests, 3);
-    const next = context.waitForEvent("page");
     await popup.click("#open");
-    const viewer = await next;
-    await viewer.waitForLoadState();
+    assert.equal(
+      context
+        .pages()
+        .filter((p) => p.url().includes("viewer/index.html#history")).length,
+      1,
+    );
     await until(async () =>
       (await viewer.locator("#analysisCount").textContent()).includes("3 场"),
     );
@@ -99,6 +127,19 @@ const dir = path.resolve(__dirname, "../dist/extension");
     assert.match(await viewer.locator("#request").textContent(), /myLineup/);
     await viewer.click('[data-replay="1"]');
     assert.equal(await viewer.locator("#trial").inputValue(), "1");
+    // Closing then reloading AlphaSim reopens analysis and restores all history.
+    await viewer.close();
+    const reopened = context.waitForEvent("page");
+    await host.reload();
+    const restored = await reopened;
+    await restored.waitForLoadState();
+    await until(async () =>
+      (await restored.locator("#analysisCount").textContent()).includes("3 场"),
+    );
+    await restored.reload();
+    await until(async () =>
+      (await restored.locator("#analysisCount").textContent()).includes("3 场"),
+    );
     const dl = popup.waitForEvent("download");
     await popup.click("#download");
     const file = await dl;
@@ -165,9 +206,15 @@ const dir = path.resolve(__dirname, "../dist/extension");
     );
     await popup.click("#clear");
     await until(async () => (await count()) === 0);
-    await until(() => popup.locator("#open").isDisabled());
+    await until(() => popup.locator("#download").isDisabled());
+    await until(async () =>
+      (await restored.locator("#liveStatus").textContent()).includes(
+        "等待模拟",
+      ),
+    );
+    assert.equal(await restored.locator("#analysisPanel").isVisible(), false);
     console.log(
-      "PASS: history capture, grouping, gzip session export, error preservation, migration, capacity without eviction, clearing; exactly three requested simulations.",
+      "PASS: automatic background opening, tab reuse/reopen, live history updates, empty state, grouping, gzip export, error preservation, migration, capacity, clearing; exactly three requested simulations.",
     );
   } finally {
     await context.close();

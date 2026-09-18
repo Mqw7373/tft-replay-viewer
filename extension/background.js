@@ -54,14 +54,43 @@ async function migrate() {
 let queue = migrate()
   .then(badge)
   .catch(() => {});
+async function openAnalysis(active = false) {
+  const url = chrome.runtime.getURL("viewer/index.html#history");
+  const contexts = await chrome.runtime.getContexts({ contextTypes: ["TAB"] });
+  let tabId = contexts.find((c) => c.documentUrl === url)?.tabId;
+  if (tabId === undefined) {
+    const { analysisTabId } = await chrome.storage.session.get("analysisTabId");
+    if (analysisTabId !== undefined) {
+      const tab = await chrome.tabs.get(analysisTabId).catch(() => null);
+      if (tab?.status === "loading") tabId = tab.id;
+    }
+  }
+  if (tabId !== undefined) {
+    if (active) await chrome.tabs.update(tabId, { active: true });
+  } else {
+    const tab = await chrome.tabs.create({ url, active });
+    await chrome.storage.session.set({ analysisTabId: tab.id });
+  }
+  return {};
+}
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
   if (sender.id !== chrome.runtime.id) return false;
   const internal = sender.url?.startsWith(chrome.runtime.getURL("")),
     host = sender.url?.startsWith("https://tftalphasim.com/");
-  if (!internal && !(host && ["save", "capture-error"].includes(message?.type)))
+  if (
+    !internal &&
+    !(
+      host &&
+      sender.frameId === 0 &&
+      ["save", "capture-error", "host-ready"].includes(message?.type)
+    )
+  )
     return false;
   queue = queue
     .then(async () => {
+      if (message.type === "host-ready") return openAnalysis();
+      if (message.type === "open-analysis" && internal)
+        return openAnalysis(true);
       if (message.type === "capture-error") {
         await chrome.storage.local.set({
           captureError: String(message.error).slice(0, 300),
