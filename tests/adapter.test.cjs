@@ -5,6 +5,37 @@ const vm = require("node:vm");
 const { parse, readFile } = require("../src/alphasim.js");
 const fixture = require("../examples/demo.json");
 const clone = () => structuredClone(fixture);
+test("all published examples match the offline bundle and expose their documented milestones", () => {
+  const context = { window: {} };
+  vm.runInNewContext(
+    fs.readFileSync(require.resolve("../examples/demo.js"), "utf8"),
+    context,
+  );
+  const manifest = require("../examples/index.json");
+  assert.equal(manifest.length, 4);
+  manifest.forEach((entry, i) => {
+    const record = require("../examples/" + entry.file);
+    assert.equal(record.synthetic, true);
+    assert.equal(
+      JSON.stringify(context.window.DEMO_EXAMPLES[i].record),
+      JSON.stringify(record),
+    );
+    parse(record);
+  });
+  const dot = parse(require("../examples/delayed-dot.json"));
+  assert.equal(dot.sides.my[1].cum[30], 0);
+  assert.equal(dot.sides.my[1].cum[31], 240);
+  assert.equal(dot.sides.my[1].total, 600);
+  const shield = require("../examples/shield-heal.json").response.data
+    .myCsSnaps[0];
+  assert.equal(shield[20].shield, 100);
+  assert.equal(shield[30].hp, 850);
+  assert.equal(shield[40].hp, 950);
+  assert.equal(shield[50].hp, 600);
+  const summon = parse(require("../examples/death-summon.json"));
+  assert.equal(summon.sides.en[2].birth, 3);
+  assert.equal(summon.sides.en[2].death, 6);
+});
 test("wrapper and raw response preserve damage, events and missing request", () => {
   const b = parse(clone());
   assert.equal(b.sides.my[1].cum.at(-1), 1600);

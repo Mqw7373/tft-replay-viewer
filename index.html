@@ -18,8 +18,15 @@
           id="files"
           type="file"
           accept=".json,.gz,application/json,application/gzip"
-          multiple /></label
-      ><button id="demo">加载自制示例</button>
+          multiple
+      /></label>
+      <label
+        >示例
+        <select id="exampleSelect" aria-label="选择示例回放"></select
+      ></label>
+      <button id="demo">加载所选示例</button>
+      <button id="downloadExample">下载示例 JSON</button>
+      <p id="exampleDescription" class="muted"></p>
       <p class="muted">
         也可拖入 JSON / JSON.gz；最多 20 场，单文件 50 MB，解压后 100
         MB。支持完整 AlphaSim 单场响应及 request / response 包装记录。

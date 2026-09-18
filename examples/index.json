@@ -1,0 +1,22 @@
+[
+  {
+    "file": "demo.json",
+    "label": "基础回放",
+    "description": "8 秒两对两；查看施法、伤害、阵亡与胜负。"
+  },
+  {
+    "file": "delayed-dot.json",
+    "label": "延迟与持续伤害",
+    "description": "2.5 秒施法，3.1 秒首次伤害，随后三次持续伤害。"
+  },
+  {
+    "file": "shield-heal.json",
+    "label": "护盾与回复",
+    "description": "1 秒获得护盾，2–3 秒承伤，4 秒回复，5 秒再次承伤。"
+  },
+  {
+    "file": "death-summon.json",
+    "label": "死亡与召唤物",
+    "description": "母体 3 秒死亡并显示召唤物，召唤物 6 秒阵亡；演示已支持的出生推定规则。"
+  }
+]

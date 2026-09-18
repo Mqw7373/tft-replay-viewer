@@ -8,6 +8,19 @@
 
 这是独立的日志查看工具，不包含战斗模拟引擎。默认示例是本项目自制的虚构数据，不代表任何真实英雄或阵容强度。
 
+## 示例回放
+
+不用准备文件就可以试用：打开 **[在线页面](https://mqw7373.github.io/tft-replay-viewer/)**，在顶部“示例”下拉框中选择场景，再点击“加载所选示例”。点击“下载示例 JSON”可以保存并重新导入；下表文件也可在 GitHub 中选择 **Download raw file** 下载。
+
+| 示例文件 | 建议观察的过程 |
+| --- | --- |
+| [基础回放](examples/demo.json) | 8 秒两对两，体验播放、施法、伤害曲线与阵亡事件。 |
+| [延迟与持续伤害](examples/delayed-dot.json) | 我方法师 2.5 秒施法，3.1 秒打出 240，4.1／5.1／6.1 秒各打出 120；观察 D(t) 的启动延迟和阶梯增长。 |
+| [护盾与回复](examples/shield-heal.json) | 选中我方前排：1 秒获得 300 护盾；2 秒受到 200 伤害；3 秒再受 250，血量降至 850；4 秒回复到 950；5 秒再受 350，剩 600。 |
+| [死亡与召唤物](examples/death-summon.json) | 母体 3 秒死亡后召唤物出现在棋盘，6 秒阵亡。出生前补齐快照不会被画成开战单位。 |
+
+四组均为本项目编写、随 MIT 许可证提供的**虚构示例**，不是真实游戏录像，也不是 AlphaSim 实战输出。召唤示例仅使用适配器识别的死亡召唤标识来演示显示规则，不表示真实英雄数值。护盾场景中的负值事件由示例作者设为回复；对外部日志，查看器仍将该字段语义标为未核实。
+
 ## 使用
 
 1. 打开在线页面，或下载仓库后直接双击 `index.html`。不需要安装 Node.js。
@@ -50,7 +63,7 @@ npm run test:browser
 
 已安装 Edge 时也可用 `BROWSER_CHANNEL=msedge` 运行浏览器测试（PowerShell：`$env:BROWSER_CHANNEL='msedge'`）。
 
-`examples/demo.json` 是示例源文件；修改后运行 `npm run sync-demo` 更新直接打开网页所需的 `examples/demo.js`。测试会检查两者一致。
+`examples/index.json` 列出示例，JSON 文件为数据源；修改后运行 `npm run sync-demo` 更新直接打开网页所需的 `examples/demo.js`。测试会检查打包数据与源文件一致。新增的三组场景可通过 `node scripts/build-examples.cjs` 重新生成。
 
 ```text
 index.html             页面与控件

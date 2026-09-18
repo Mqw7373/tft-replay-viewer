@@ -497,8 +497,26 @@ async function importFiles(files) {
   }
 }
 $("files").onchange = () => importFiles($("files").files);
-$("demo").onclick = () =>
-  install([AlphaSim.parse(window.DEMO_LOG, "自制示例")]);
+$("exampleSelect").innerHTML = window.DEMO_EXAMPLES.map(
+  (entry, i) => `<option value="${i}">${esc(entry.label)}</option>`,
+).join("");
+function exampleChoice() {
+  return window.DEMO_EXAMPLES[+$("exampleSelect").value];
+}
+function describeExample() {
+  $("exampleDescription").textContent =
+    "自制虚构数据 · " + exampleChoice().description;
+}
+$("exampleSelect").onchange = describeExample;
+$("demo").onclick = () => {
+  const entry = exampleChoice();
+  install([AlphaSim.parse(entry.record, entry.label)]);
+};
+$("downloadExample").onclick = () => {
+  const entry = exampleChoice();
+  download(entry.record, entry.file);
+};
+describeExample();
 window.addEventListener("dragover", (e) => {
   e.preventDefault();
   $("dropzone").classList.add("drag");
@@ -514,5 +532,5 @@ window.addEventListener("drop", (e) => {
 window.addEventListener("resize", () => {
   if (battle) drawChart();
 });
-install([AlphaSim.parse(window.DEMO_LOG, "自制示例")]);
+install([AlphaSim.parse(window.DEMO_LOG, window.DEMO_EXAMPLES[0].label)]);
 requestAnimationFrame(tick);

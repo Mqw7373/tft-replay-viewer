@@ -28,6 +28,29 @@ const fs = require("node:fs");
     await page.locator("#firstImpact").click();
     assert.match(await page.locator("#clock").innerText(), /2.0/);
     assert.match(await page.locator("#eventDetail").innerText(), /200/);
+    assert.equal(await page.locator("#exampleSelect option").count(), 4);
+    for (let i = 0; i < 4; i++) {
+      await page.selectOption("#exampleSelect", String(i));
+      await page.click("#demo");
+      assert.match(await page.locator("#importStatus").innerText(), /自制示例/);
+      await page.click("#end");
+    }
+    await page.selectOption("#exampleSelect", "3");
+    await page.click("#demo");
+    assert.equal(await page.locator("#board .unit").count(), 4);
+    await page.locator("#seek").fill("30");
+    assert.equal(await page.locator("#board .unit").count(), 5);
+    const downloadPromise = page.waitForEvent("download");
+    await page.click("#downloadExample");
+    const download = await downloadPromise;
+    assert.equal(download.suggestedFilename(), "death-summon.json");
+    await page.locator("#files").setInputFiles(await download.path());
+    await page.waitForFunction(
+      () => !document.querySelector("#files").disabled,
+    );
+    assert.equal(await page.locator("#unitSelect option").count(), 5);
+    await page.selectOption("#exampleSelect", "0");
+    await page.click("#demo");
     const fixture = require("../examples/demo.json"),
       gzip = require("node:zlib").gzipSync(JSON.stringify(fixture));
     await page.locator("#files").setInputFiles([
@@ -43,13 +66,11 @@ const fs = require("node:fs");
     );
     await page.selectOption("#trial", "1");
     assert.equal(await page.locator("#downloadRequest").isDisabled(), true);
-    await page
-      .locator("#files")
-      .setInputFiles({
-        name: "bad.json",
-        mimeType: "application/json",
-        buffer: Buffer.from("{}"),
-      });
+    await page.locator("#files").setInputFiles({
+      name: "bad.json",
+      mimeType: "application/json",
+      buffer: Buffer.from("{}"),
+    });
     await page.waitForFunction(() =>
       document.querySelector("#importStatus").textContent.includes("导入失败"),
     );
@@ -60,13 +81,11 @@ const fs = require("node:fs");
       '<img src=x onerror="window.pwned=1">';
     bad.response.data.myDmgPopEvents[0].popKind =
       '<svg onload="window.pwned=1">';
-    await page
-      .locator("#files")
-      .setInputFiles({
-        name: "text.json",
-        mimeType: "application/json",
-        buffer: Buffer.from(JSON.stringify(bad)),
-      });
+    await page.locator("#files").setInputFiles({
+      name: "text.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(bad)),
+    });
     await page.waitForFunction(
       () => document.querySelector("#trial").options.length === 1,
     );
