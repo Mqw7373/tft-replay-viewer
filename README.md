@@ -8,6 +8,13 @@
 
 这是独立的日志查看工具，不包含战斗模拟引擎。默认示例是本项目自制的虚构数据，不代表任何真实英雄或阵容强度。
 
+## AlphaSim 模拟器
+
+- **[AlphaSim 官网](https://tftalphasim.com/)**
+- **[直接打开战斗模拟器](https://tftalphasim.com/simulator.html?locale=en)**
+
+AlphaSim 负责战斗模拟；本项目用于查看已保存的完整战斗日志。获得兼容的 JSON / JSON.gz 记录后，可在本页面导入回放。本项目与 AlphaSim 无隶属关系，也不会自动调用其服务。
+
 ## 示例回放
 
 不用准备文件就可以试用：打开 **[在线页面](https://mqw7373.github.io/tft-replay-viewer/)**，在顶部“示例”下拉框中选择场景，再点击“加载所选示例”。点击“下载示例 JSON”可以保存并重新导入；下表文件也可在 GitHub 中选择 **Download raw file** 下载。
