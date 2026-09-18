@@ -21,14 +21,7 @@ AlphaSim 负责战斗模拟；本项目用于查看已保存的完整战斗日�
 
 **[下载 Chrome / Edge 扩展 ZIP](https://mqw7373.github.io/tft-replay-viewer/tft-replay-bridge.zip)** · **[安装与使用说明](https://mqw7373.github.io/tft-replay-viewer/extension.html)** · [扩展源码](extension/)
 
-1. 解压 ZIP，打开 `chrome://extensions` 或 `edge://extensions`。
-2. 开启“开发者模式”，点击“加载已解压的扩展”，选择包含 `manifest.json` 的文件夹。
-3. 固定 **TFT Replay Bridge** 扩展，刷新 AlphaSim 页面。
-4. 在 AlphaSim 手动运行一次单场模拟。扩展图标出现 **1** 后，点击“打开回放”；需要留档时点击“下载 JSON”。
-
-当前版本尚未上架扩展商店，使用本地安装方式。扩展自带回放工具，打开回放不依赖 GitHub Pages。它只观察 AlphaSim 的 `/api/simulate` 单场请求，保存阵容输入与结果，不额外发起模拟、不读取 Cookie 或请求头、不上传日志。
-
-只保留最新一场，成功的新结果会覆盖旧记录；失败或不兼容的结果保留旧记录并提示错误。压缩后上限 6 MB，原始记录上限 50 MB。可在扩展中清除记录。首次安装前的历史请求不能补取，请刷新后再运行一场。批量胜率统计不作为回放保存。
+当前版本尚未上架扩展商店。详细安装步骤、使用方法和保存范围统一见上方“安装与使用说明”。扩展自带本地回放工具，只保留最新一场，不额外发起模拟、不上传日志。
 
 ## 示例回放
 
